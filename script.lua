@@ -46,6 +46,9 @@ RobloxDevKit.Name = 'RobloxDevKit'
 local RobloxGameFolder = new('ModuleScript', RobloxDevKit)
 RobloxGameFolder.Name = 'Game-Source'
 
+
+
+
 local ChatManager = new('ModuleScript', RobloxGameFolder)
 ChatManager.Name = 'ChatManager'
 
@@ -190,6 +193,9 @@ MODULES[OldChatManager] = {
 
 
 
+local CommandsUsedAlready = {}
+
+
 MODULES[ChatManager] = {
     ['Closure'] = function()
         local script = ChatManager
@@ -197,6 +203,7 @@ MODULES[ChatManager] = {
 
         local LegacyChatService = require(script['Chat-Version']['Legacy-Chat-Service'])
         local TextChatService_Module = require(script['Chat-Version']['TextChatService-Chat-Service'])
+        local Players = game:GetService('Players')
 
 
 
@@ -231,10 +238,109 @@ MODULES[ChatManager] = {
         end
 
 
-        
+
+        module.AddCommand = function(Name, Callback)
+            local Name = Name or ''
+            local Callback = Callback or function() print('Hello World') end
+
+
+
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                local Command = new('TextChatCommand', TextChatService:WaitForChild('TextChatCommands'))
+
+
+                Command.Name = Name
+                Command.PrimaryAlias = Name
+                Command.Triggered:Connect(Callback)
+            elseif TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService then
+                Players.LocalPlayer.Chatted:Connect(function(a, b)
+                    local Command = a:split(' ')
+
+
+                    if not table.find(CommandsUsedAlready, Name) then
+                        CommandsUsedAlready[Name] = Callback
+                    end
+
+
+                    if table.find(CommandsUsedAlready, Command[1]) then
+                        CommandsUsedAlready[Command[1]]()
+                    end
+                end)
+            end
+        end
+
+
+
         return module
     end
 }
+
+
+
+local RobloxScriptPrimissions_Folder = new('Folder', RobloxGameFolder)
+RobloxScriptPrimissions_Folder.Name = 'Roblox-Primissions-Folder'
+
+
+
+local RobloxPrimissionsModule = new('ModuleScript', RobloxScriptPrimissions_Folder)
+RobloxPrimissionsModule.Name = 'Roblox-Primissions-Storage'
+
+
+MODULES[RobloxPrimissionsModule] = {
+    ['Closure'] = function()
+        local script = RobloxPrimissionsModule
+        local UserInputService = game:GetService('UserInputService')
+        local StarterGui = game:GetService('StarterGui')
+
+
+
+        local module = {}
+
+
+
+        module.ToggleDevConsole = function(open: boolean)
+            StarterGui:SetCore('DevConsoleVisible', ((type(open) == 'boolean') or (not StarterGui:GetCore('DevConsoleVisible'))))
+        end
+
+
+        module.SendNotification = function(Title, Text, Icon, Duration, Callback, Button1, Button2)
+            StarterGui:SetCore('SendNotification', {
+                Title = (Title or 'nil'),
+                Text = (Text or 'nil'),
+                Icon = (Icon),
+                Duration = (Duration),
+                Callback = (Callback),
+                Button1 = (Button1),
+                Button2 = (Button2)
+            })
+        end
+
+
+        return module
+    end
+}
+
+
+
+local MainScripts_Folder = new('Folder', RobloxGameFolder)
+MainScripts_Folder.Name = 'Main-Scripts-Folder'
+
+
+
+local ChatCommandsHandler = new('LocalScript', MainScripts_Folder)
+ChatCommandsHandler.Name = 'Commands-Handler'
+
+
+local function Spawn_ChatCommandsHandler()
+    local script = ChatCommandsHandler
+    local RobloxScriptPrimissions_Module = require(script.Parent['Roblox-Primissions-Folder']['Roblox-Primissions-Storage'])
+    local ChatManager = require(script.Parent['ChatManager'])
+end
+
+
+spawn(Spawn_ChatCommandsHandler)
+
+
 
 
 
