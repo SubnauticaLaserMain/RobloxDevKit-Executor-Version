@@ -126,6 +126,9 @@ MODULES[OldChatManager] = {
         local script = OldChatManager
         local ReplicatedStorage = game:GetService('ReplicatedStorage')
         local TextChatService = game:GetService('TextChatService')
+        local StarterGui = game:GetService('StarterGui')
+        local Players = game:GetService('Players')
+
 
         local DefaultChatSystemChatEvents = ReplicatedStorage:WaitForChild('DefaultChatSystemChatEvents')
 
@@ -144,14 +147,99 @@ MODULES[OldChatManager] = {
         end
 
 
+        module.SendWhisperToPlayer = function(PlayerUserId: number, message: string)
+            local SayMessageRequest = DefaultChatSystemChatEvents:WaitForChild('SayMessageRequest')
+            local Player = Players:GetPlayerByUserId(PlayerUserId)
+
+
+            local args = {
+                [1] = message,
+                [2] = 'To '..Player.Name
+            }
+
+
+            SayMessageRequest:FireServer(unpack(args))
+        end
 
         
 
+        module.SendChatMessage = function(message, Color, Font, TextSize)
+            local Text = message or 'nil'
+
+
+            local args = {
+                [1] = {
+                    Text = Text,
+                    Color = '#'..Color3.new(1, 1, 1):ToHex(),
+                    Font = Font.Name or Enum.Font.Arial.Name,
+                    TextSize = TextSize or 18
+                }
+            }
+
+
+            StarterGui:SetCore('ChatMakeSystemMessage', unpack(args))
+        end
 
 
 
-
-
+    
         return module
     end
 }
+
+
+
+
+MODULES[ChatManager] = {
+    ['Closure'] = function()
+        local script = ChatManager
+        local TextChatService = game:GetService('TextChatService')
+
+        local LegacyChatService = require(script['Chat-Version']['Legacy-Chat-Service'])
+        local TextChatService_Module = require(script['Chat-Version']['TextChatService-Chat-Service'])
+
+
+
+        local module = {}
+
+
+
+        module.SendChatMessage = function(message)
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                TextChatService_Module.SendChatMessage(message)
+            elseif TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService then
+                LegacyChatService.SendChatMessage(message)
+            end
+        end
+
+
+        module.SendPlayerMessage = function(message)
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                TextChatService_Module.SendPlayerMessage(message)
+            elseif TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService then
+                LegacyChatService.SendPlayerMessage(message)
+            end
+        end
+
+
+        module.SendWhisperToPlayer = function(PlayerUserId: number, message: string)
+            if TextChatService.ChatVersion == Enum.ChatVersion.TextChatService then
+                TextChatService_Module.SendWhisperToPlayer(PlayerUserId, message)
+            elseif TextChatService.ChatVersion == Enum.ChatVersion.LegacyChatService then
+                LegacyChatService.SendWhisperToPlayer(PlayerUserId, message)
+            end
+        end
+
+
+        
+        return module
+    end
+}
+
+
+
+
+
+
+
+-- loadstring(game:HttpGet('https://raw.githubusercontent.com/SubnauticaLaserMain/RobloxDevKit-Executor-Version/main/script.lua', true))()
